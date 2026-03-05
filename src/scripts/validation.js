@@ -77,3 +77,18 @@ export const enableValidation = (settings) => {
         setEventListeners(formElement, settings);
     });
 };
+
+// Очищает ошибки валидации формы и управляет состоянием кнопки
+export const clearValidation = (formElement, settings) => {
+    const inputList = Array.from(formElement.querySelectorAll(settings.inputSelector));
+    const buttonElement = formElement.querySelector(settings.submitButtonSelector);
+
+    inputList.forEach((inputElement) => {
+        hideInputError(formElement, inputElement, settings);
+        inputElement.setCustomValidity('');
+    });
+
+    // После очистки проверяем текущее состояние полей
+    toggleButtonState(inputList, buttonElement, settings);
+};
+
