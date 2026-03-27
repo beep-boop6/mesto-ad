@@ -132,14 +132,6 @@ const handleLikeCard = (likeButton, cardId, likeCounter) => {
         .catch((err) => console.error(err));
 };
 
-const handleDeleteCard = (cardId, cardElement) => {
-    deleteCardApi(cardId)
-        .then(() => {
-            cardElement.remove();
-        })
-        .catch((err) => console.error(err));
-};
-
 Promise.all([getUserInfo(), getInitialCards()])
     .then(([userData, cardsData]) => {
         // Сохраняем ID и обновляем профиль
@@ -197,11 +189,37 @@ initialCards.forEach((data) => {
     );
 });
 
-// Настраиваем обработчики закрытия попапов
+
 const allPopups = document.querySelectorAll(".popup");
 allPopups.forEach((popup) => {
     setCloseModalWindowEventListeners(popup);
 });
+
+const confirmDeletePopup = document.querySelector(".popup_type_remove-card");
+const confirmDeleteForm = confirmDeletePopup.querySelector(".popup__form");
+
+let cardToDelete = null;
+
+const handleDeleteCard = (cardId, cardElement) => {
+    cardToDelete = { id: cardId, element: cardElement };
+    openModalWindow(confirmDeletePopup);
+};
+
+// Обработчик подтверждения
+const handleConfirmDeleteSubmit = (evt) => {
+    evt.preventDefault();
+    if (!cardToDelete) return;
+
+    deleteCardApi(cardToDelete.id)
+        .then(() => {
+            cardToDelete.element.remove();
+            closeModalWindow(confirmDeletePopup);
+            cardToDelete = null;
+        })
+        .catch((err) => console.error(err));
+};
+
+confirmDeleteForm.addEventListener("submit", handleConfirmDeleteSubmit);
 
 // Включение валидации форм
 enableValidation(validationSettings);
