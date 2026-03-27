@@ -1,7 +1,14 @@
-import { initialCards } from "./cards.js";
-import { createCardElement, deleteCard, likeCard } from "./components/card.js";
+import "../pages/index.css";
+import { createCardElement, toggleLikeState } from "./components/card.js";
 import { openModalWindow, closeModalWindow, setCloseModalWindowEventListeners } from "./components/modal.js";
 import { enableValidation, clearValidation } from "./components/validation.js";
+import {
+    getUserInfo,
+    getInitialCards,
+    likeCardApi,
+    unlikeCardApi,
+    deleteCardApi
+} from "./components/api.js";
 
 // Настройки валидации
 const validationSettings = {
@@ -39,6 +46,8 @@ const profileAvatar = document.querySelector(".profile__image");
 const avatarFormModalWindow = document.querySelector(".popup_type_edit-avatar");
 const avatarForm = avatarFormModalWindow.querySelector(".popup__form");
 const avatarInput = avatarForm.querySelector(".popup__input");
+
+let currentUserId = "";
 
 // Обработчики
 const handlePreviewPicture = ({ name, link }) => {
@@ -80,6 +89,46 @@ const handleCardFormSubmit = (evt) => {
     cardForm.reset();
     closeModalWindow(cardFormModalWindow);
 };
+
+const handleLikeCard = (likeButton, cardId, likeCounter) => {
+    const isLiked = likeButton.classList.contains("card__like-button_is-active");
+    const likeMethod = isLiked ? unlikeCardApi : likeCardApi;
+
+    likeMethod(cardId)
+        .then((updatedCard) => {
+            toggleLikeState(likeButton, !isLiked, likeCounter, updatedCard.likes.length);
+        })
+        .catch((err) => console.error(err));
+};
+
+const handleDeleteCard = (cardId, cardElement) => {
+    deleteCardApi(cardId)
+        .then(() => {
+            cardElement.remove();
+        })
+        .catch((err) => console.error(err));
+};
+
+Promise.all([getUserInfo(), getInitialCards()])
+    .then(([userData, cardsData]) => {
+        // Сохраняем ID и обновляем профиль
+        currentUserId = userData._id;
+        profileTitle.textContent = userData.name;
+        profileDescription.textContent = userData.about;
+        profileAvatar.style.backgroundImage = `url(${userData.avatar})`;
+
+        // Отрисовываем карточки
+        cardsData.forEach((cardData) => {
+            placesWrap.append(
+                createCardElement(cardData, currentUserId, {
+                    onPreviewPicture: handlePreviewPicture,
+                    onDeleteCard: handleDeleteCard,
+                    onLikeCard: handleLikeCard,
+                })
+            );
+        });
+    })
+    .catch((err) => console.error(err));
 
 // EventListeners для форм
 profileForm.addEventListener("submit", handleProfileFormSubmit);
