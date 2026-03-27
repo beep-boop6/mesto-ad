@@ -7,7 +7,10 @@ import {
     getInitialCards,
     likeCardApi,
     unlikeCardApi,
-    deleteCardApi
+    deleteCardApi,
+    updateUserInfo,
+    updateUserAvatar,
+    addNewCard
 } from "./components/api.js";
 
 // Настройки валидации
@@ -57,37 +60,65 @@ const handlePreviewPicture = ({ name, link }) => {
     openModalWindow(imageModalWindow);
 };
 
+// Функция UX загрузки
+const renderLoading = (isLoading, buttonElement) => {
+    buttonElement.textContent = isLoading ? "Сохранение..." : "Сохранить";
+};
+
+// Обновление профиля
 const handleProfileFormSubmit = (evt) => {
     evt.preventDefault();
-    profileTitle.textContent = profileTitleInput.value;
-    profileDescription.textContent = profileDescriptionInput.value;
-    closeModalWindow(profileFormModalWindow);
+    const submitButton = evt.submitter;
+    renderLoading(true, submitButton);
+
+    updateUserInfo(profileTitleInput.value, profileDescriptionInput.value)
+        .then((userData) => {
+            profileTitle.textContent = userData.name;
+            profileDescription.textContent = userData.about;
+            closeModalWindow(profileFormModalWindow);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => renderLoading(false, submitButton));
 };
 
+// Обновление аватара
 const handleAvatarFormSubmit = (evt) => {
     evt.preventDefault();
-    profileAvatar.style.backgroundImage = `url(${avatarInput.value})`;
-    avatarForm.reset();
-    closeModalWindow(avatarFormModalWindow);
+    const submitButton = evt.submitter;
+    renderLoading(true, submitButton);
+
+    updateUserAvatar(avatarInput.value)
+        .then((userData) => {
+            profileAvatar.style.backgroundImage = `url(${userData.avatar})`;
+            closeModalWindow(avatarFormModalWindow);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => renderLoading(false, submitButton));
 };
 
+// Создание карточки
 const handleCardFormSubmit = (evt) => {
     evt.preventDefault();
-    placesWrap.prepend(
-        createCardElement(
-            {
-                name: cardNameInput.value,
-                link: cardLinkInput.value,
-            },
-            {
-                onPreviewPicture: handlePreviewPicture,
-                onLikeIcon: likeCard,
-                onDeleteCard: deleteCard,
-            }
-        )
-    );
-    cardForm.reset();
-    closeModalWindow(cardFormModalWindow);
+    const submitButton = evt.submitter;
+    const initialText = submitButton.textContent;
+    submitButton.textContent = "Создание...";
+
+    addNewCard(cardNameInput.value, cardLinkInput.value)
+        .then((cardData) => {
+            placesWrap.prepend(
+                createCardElement(cardData, currentUserId, {
+                    onPreviewPicture: handlePreviewPicture,
+                    onDeleteCard: handleDeleteCard,
+                    onLikeCard: handleLikeCard,
+                })
+            );
+            closeModalWindow(cardFormModalWindow);
+            cardForm.reset();
+        })
+        .catch((err) => console.error(err))
+        .finally(() => {
+            submitButton.textContent = initialText;
+        });
 };
 
 const handleLikeCard = (likeButton, cardId, likeCounter) => {
